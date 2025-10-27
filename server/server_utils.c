@@ -3,8 +3,7 @@
 
 void struct_info(struct sockaddr_in c_addr)
 {
-	printf("PORT NUMBER = [ %d ]\n",ntohs(c_addr.sin_port));
-    printf("IP ADDRESS = [ %s ]\n",inet_ntoa(c_addr.sin_addr));
+	printf("PORT NUMBER = [ %d ] IP ADDRESS = [ %s ]\n",ntohs(c_addr.sin_port),inet_ntoa(c_addr.sin_addr));
 }
 
 void* server_receive(void*args)
@@ -12,16 +11,17 @@ void* server_receive(void*args)
     int ret;
     char buf[100];
     struct args_read* argument=(struct args_read*)args;
-    printf("received sfd=%d no=%d\n",argument->sfd,*(argument->conct_count));
     while(1)
     {
-        printf("Trying to read from the client\n");
         ret=read(argument->sfd,buf,sizeof(buf));
-        printf("client message:%s\n",buf);
+        printf("From [%s]:[%d]:%s\n",inet_ntoa(argument->clients.sin_addr),ntohs(argument->clients.sin_port),buf);
         if(strcmp(buf,"./exit")==0)
         {
             printf("Client disconnected\n");
-            printf("Thread exit\n");
+            //struct_info(argument);
+            *(argument->conct_count)=*(argument->conct_count)-1;
+            printf("No of connections after exit:[ %d ]\n",*(argument->conct_count));
+            fflush(stdout);
             pthread_exit(NULL);
         }
     }
@@ -34,23 +34,17 @@ void* server_send(void*args)
     struct args_write* argm=(struct args_write*)args;
     while(1)
     {
-        printf("Write to clients\nEnter the client no:");
-        scanf("%d",&ret);
+        printf("Enter the client no & message:");
+        scanf("%d %s",&ret,s);
         if(ret>*(argm->conct_count))
         {
             printf("invalid client id\n");
             continue;
         }
-
-        printf("client no:%d\n",ret);
-        struct_info(argm->clients[ret]);
-        printf("Enter the client message:");
-        scanf("%s",s);
         write(argm->fd[ret].sfd,s,sizeof(s));
         if(strcmp(s,"./exit")==0)
         {
             printf("closing thread\n");
-            *(argm->conct_count)=*(argm->conct_count)-1;
             pthread_exit(NULL);
         }
     }
@@ -61,15 +55,12 @@ int thread_create_read(pthread_t* thread,struct args_read* args)
 
     pthread_create(thread,NULL,server_receive,args);
     pthread_detach(*thread);
-    printf("Thread creation successful\n");
 }
 
 int thread_create_write(pthread_t* thread,struct args_write*args)
 {
     pthread_create(thread,NULL,server_send,args);
     pthread_detach(*thread);
-    printf("Write Thread is created successfully\n");
-
 }
 
 int parse_arg(int argc,char **argv,struct server_argument* server)

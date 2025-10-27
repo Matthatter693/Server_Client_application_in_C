@@ -33,6 +33,7 @@ struct server_argument
 struct args_read
 {
     int sfd;
+    struct sockaddr_in clients;
     int *conct_count;
 };
 

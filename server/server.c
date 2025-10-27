@@ -13,8 +13,8 @@ int main(int argc,char *argv[])
     }
 
     struct_info(server_args.server);
-    int sfd,nsfd,ret,conct_count=0;
-    pthread_t thread[MAX_CONCTION],thread_write;
+    int sfd,nsfd,ret,conct_count=0,write_set=0;
+    pthread_t thread[server_args.limit],thread_write;
 
     struct sockaddr_in clients[server_args.limit];
     struct args_read fd[server_args.limit];
@@ -45,18 +45,18 @@ int main(int argc,char *argv[])
 
     char s[100];
     int size=sizeof(clients[conct_count]);
+
     while(1)
     {
         printf("Waiting for client..\n");
         printf("No of connections:[ %d ]\n",conct_count);
+        fflush(stdout);
         nsfd=accept(sfd,(struct sockaddr*)&clients[conct_count],&size);
         if(nsfd<0)
         {
             perror("accept fails");
             return ERR_SYS_ACCEPT;
         }
-        conct_count++;
-        printf("No of connections:[ %d ]\n",conct_count);
 
         if(conct_count<=server_args.limit)
         {
@@ -72,9 +72,11 @@ int main(int argc,char *argv[])
             continue;
         }
 
+        conct_count++;
 
-        if(conct_count==0)
+        if(write_set==0)
         {
+            write_set=1;
             struct args_write argument;
             argument.conct_count=&conct_count;
             argument.clients=clients;
@@ -88,7 +90,7 @@ int main(int argc,char *argv[])
         //Creating thread for connections:
         fd[conct_count].sfd=nsfd;
         fd[conct_count].conct_count=&conct_count;
-        printf("nsfd=%d saved=%d saved_no=%d\n",nsfd,fd[conct_count].sfd,*(fd[conct_count].conct_count));
+        fd[conct_count].clients=clients[conct_count];
         thread_create_read(&thread[conct_count],&fd[conct_count]);
         
     }
