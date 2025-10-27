@@ -7,6 +7,25 @@ void struct_info(struct sockaddr_in c_addr)
     printf("ip_address:%s\n",inet_ntoa(c_addr.sin_addr));
 }
 
+
+enum ack_status server_ack(int sfd)
+{
+    int ack=0;
+    read(sfd,&ack,sizeof(ack));
+    if(ack == 3)
+    {
+        printf("Acknowledgment Success\n");
+        return ACK_SUCESS;
+    }
+    else
+    {
+        printf("Acknowledgment failure\n");
+        return ACK_FAILURE;
+    }
+
+}
+
+
 void* client_receive(void*args)
 {
     int ret;

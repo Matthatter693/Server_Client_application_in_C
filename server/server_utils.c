@@ -3,8 +3,8 @@
 
 void struct_info(struct sockaddr_in c_addr)
 {
-	printf("port no:%d\n",ntohs(c_addr.sin_port));
-    printf("ip_address:%s\n",inet_ntoa(c_addr.sin_addr));
+	printf("PORT NUMBER = [ %d ]\n",ntohs(c_addr.sin_port));
+    printf("IP ADDRESS = [ %s ]\n",inet_ntoa(c_addr.sin_addr));
 }
 
 void* server_receive(void*args)
@@ -49,8 +49,8 @@ void* server_send(void*args)
         write(argm->fd[ret].sfd,s,sizeof(s));
         if(strcmp(s,"./exit")==0)
         {
-            printf("closing server\n");
-            fflush(stdout);
+            printf("closing thread\n");
+            *(argm->conct_count)=*(argm->conct_count)-1;
             pthread_exit(NULL);
         }
     }
@@ -72,23 +72,24 @@ int thread_create_write(pthread_t* thread,struct args_write*args)
 
 }
 
-int parse_arg(int argc,char **argv,struct sockaddr_in* server)
+int parse_arg(int argc,char **argv,struct server_argument* server)
 {
     static struct option long_options[]=
     {
         {"ipaddr",required_argument,0,'i'},
         {"port",required_argument,0,'p'},
+        {"limit",required_argument,0,'l'},
         {"help",no_argument,0,'h'},
         {0,0,0,0}
     };
 
     int opt;
-    int portset=0,ipset=0;
+    int portset=0,ipset=0,limitset=0;
 
     while(1)
     {
 
-        server->sin_family=AF_INET;
+        server->server.sin_family=AF_INET;
         int option_index=0;
         opt=getopt_long(argc,argv,"i:p:h",long_options,&option_index);
         if(opt==-1)
@@ -104,13 +105,17 @@ int parse_arg(int argc,char **argv,struct sockaddr_in* server)
                 break;
             case 'i':
                 ipset=1;
-                printf("in parse_ipaddr:%s\n",optarg);
-                server->sin_addr.s_addr=inet_addr(optarg);
+                //printf("in parse_ipaddr:%s\n",optarg);
+                server->server.sin_addr.s_addr=inet_addr(optarg);
                 break;
             case 'p':
                 portset=1;
-                printf("in_parse_port:%d\n",atoi(optarg));
-                server->sin_port=htons(atoi(optarg));
+                //printf("in_parse_port:%d\n",atoi(optarg));
+                server->server.sin_port=htons(atoi(optarg));
+                break;
+            case 'l':
+                limitset=1;
+                server->limit=atoi(optarg);
                 break;
             case 'h':
                 printf("A simple server program in C\n");
@@ -132,13 +137,18 @@ int parse_arg(int argc,char **argv,struct sockaddr_in* server)
     }
     if(portset==0)
     {
-        printf("Setting default port\n");
-        server->sin_addr.s_addr=inet_addr(DEFAULT_IP);
+        printf("Setting default port:[%s]\n",DEFAULT_IP);
+        server->server.sin_addr.s_addr=inet_addr(DEFAULT_IP);
     }
     if(ipset==0)
     {
-        printf("Setting default ip\n");
-        server->sin_port=htons(DEFAULT_PORT);
+        printf("Setting default ip:[%d]\n",DEFAULT_PORT);
+        server->server.sin_port=htons(DEFAULT_PORT);
+    }
+    if(limitset==0)
+    {
+        printf("Setting Default Limit:[%d]\n",MAX_CONCTION);
+        server->limit=MAX_CONCTION;
     }
     return 0;
 }

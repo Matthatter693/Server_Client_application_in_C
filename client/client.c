@@ -2,12 +2,12 @@
 #include"client_utils.h"
 
 
-
 int main(int argc,char*argv[])
 {
 
-    struct sockaddr_in client;
 
+    struct sockaddr_in client;
+    enum ack_status ack_stat;
     //Parsing args
     if(parse_arg(argc,argv,&client))
     {
@@ -26,9 +26,9 @@ int main(int argc,char*argv[])
 
 
     /*Creating a socket
-    * 1) If created sucess
-    * 2) Else Exit
-    */
+     * 1) If created sucess
+     * 2) Else Exit
+     */
     sfd=socket(AF_INET,SOCK_STREAM,0);
     if(sfd<0)
     {
@@ -38,9 +38,10 @@ int main(int argc,char*argv[])
     perror("socket");
 
 
+
     /*
-    *Connect call
-    */
+     *Connect call
+     */
     nsfd=connect(sfd,(struct sockaddr*)&client,sizeof(client));
     if(nsfd<0)
     {
@@ -49,6 +50,12 @@ int main(int argc,char*argv[])
     }
     perror("connect");
 
+    //Ack from server
+
+    if((ack_stat=server_ack(sfd))==1)
+    {
+        return ack_stat;
+    }
 
     //Creating a thread for receiving msg from server
     fd.sfd=sfd;
