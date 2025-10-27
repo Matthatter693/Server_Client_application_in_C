@@ -13,3 +13,6 @@
 //MACROS
 
 #define ARG_COUNT 3
+#define MAX_CONCTION 2
+#define DEFAULT_PORT 8080
+#define DEFAULT_IP "0.0.0.0"

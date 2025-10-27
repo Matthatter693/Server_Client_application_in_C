@@ -2,19 +2,23 @@
 #include "server_utils.h"
 
 
+
 int main(int argc,char *argv[])
 {
 
-    if(argc!=3)
+    struct sockaddr_in server;
+    struct sockaddr_in clients[MAX_CONCTION];
+    struct args_read fd[MAX_CONCTION];
+
+    if(parse_arg(argc,argv,&server))
     {
-        printf("wrong usage\n");
-        return 0;
+        return 1;
     }
 
-    int sfd,nsfd,ret;
-    struct sockaddr_in server,client;
 
-    printf("argv[2]=%s argv[3]=%s\n",argv[1],argv[2]);
+    int sfd,nsfd,ret,conct_count=0;
+    pthread_t thread[MAX_CONCTION],thread_write;
+
 
     sfd=socket(AF_INET,SOCK_STREAM,0);
 
@@ -25,11 +29,7 @@ int main(int argc,char *argv[])
     }
     perror("socket");
 
-    server.sin_family = AF_INET;
-    server.sin_port = htons(atoi(argv[1]));
-    server.sin_addr.s_addr = inet_addr(argv[2]);
-
-
+    struct_info(server);
     ret=bind(sfd,(struct sockaddr*)&server,sizeof(server));
 
     if(ret<0)
@@ -39,7 +39,7 @@ int main(int argc,char *argv[])
     }
     perror("bind");
 
-    ret=listen(sfd,2);
+    ret=listen(sfd,MAX_CONCTION);
 
     if(ret<0)
     {
@@ -48,16 +48,41 @@ int main(int argc,char *argv[])
     }
     perror("listen");
 
-    int size=sizeof(client);
+    char s[100];
+    int size=sizeof(clients[conct_count]);
     while(1)
     {
-        if((nsfd=accept(sfd,(struct sockaddr*)&client,&size)<0))
+        printf("Waiting for client..\n");
+        printf("No of connections:%d\n",conct_count);
+        nsfd=accept(sfd,(struct sockaddr*)&clients[conct_count],&size);
+        if(nsfd<0)
         {
             perror("accept fails");
             return 1;
         }
         perror("accept");
+
+        if(conct_count==0)
+        {
+            struct args_write argument;
+            argument.conct_count=&conct_count;
+            argument.clients=clients;
+            argument.fd=fd;
+
+            thread_create_write(&thread_write,&argument);
+            
+        }
+        struct_info(clients[conct_count]);
+
+        //Creating thread for connections:
+        fd[conct_count].sfd=nsfd;
+        fd[conct_count].conct_count=&conct_count;
+        printf("nsfd=%d saved=%d saved_no=%d\n",nsfd,fd[conct_count].sfd,*(fd[conct_count].conct_count));
+        thread_create_read(&thread[conct_count],&fd[conct_count]);
+        conct_count++;
+        
     }
 
+    close(sfd);
 
 }

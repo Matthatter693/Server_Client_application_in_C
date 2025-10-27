@@ -2,10 +2,11 @@
 #include"client_utils.h"
 
 
+
 int main(int argc,char*argv[])
 {
 
-    struct sockaddr_in client,server;
+    struct sockaddr_in client;
 
     //Parsing args
     if(parse_arg(argc,argv,&client))
@@ -13,13 +14,22 @@ int main(int argc,char*argv[])
         return 1;
     }
 
+    //fetching client info
     struct_info(client);
+
+    //Variables
     int sfd,nsfd,ret;
     pthread_t thread;
     struct args fd;
+    char s[100];
 
+
+
+    /*Creating a socket
+    * 1) If created sucess
+    * 2) Else Exit
+    */
     sfd=socket(AF_INET,SOCK_STREAM,0);
-
     if(sfd<0)
     {
         perror("socket fails");
@@ -27,6 +37,10 @@ int main(int argc,char*argv[])
     }
     perror("socket");
 
+
+    /*
+    *Connect call
+    */
     nsfd=connect(sfd,(struct sockaddr*)&client,sizeof(client));
     if(nsfd<0)
     {
@@ -35,15 +49,29 @@ int main(int argc,char*argv[])
     }
     perror("connect");
 
+
+    //Creating a thread for receiving msg from server
     fd.sfd=sfd;
-    printf("stored=%d\n",fd.sfd);
     thread_create(&thread,&fd);
 
+    //Client writes the data
     while(1)
     {
-        char s[20];
         printf("Enter a message:");
         scanf("%s",s);
-        write(sfd,s,strlen(s)+1);
+        ret=write(sfd,s,strlen(s)+1);
+        if(ret<0)
+        {
+            printf("write failed\n");
+            close(sfd);
+            break;
+        }
+        if(strcmp(s,"./exit")==0)
+        {
+            printf("exiting bye\n");
+            close(sfd);
+            break;
+        }
     }
+    return 0;
 }
